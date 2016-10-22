@@ -888,7 +888,7 @@ double EXPoint(int time, int point) {
     return ans;
 }
 
-double EatEX(Pacman::GameField a, int x, int y) {
+double EatEX(Pacman::GameField &a, int x, int y) {
     double f[20][20], ans = 0;
     bool t[20][20];
     int ddx[400], ddy[400];
@@ -900,8 +900,8 @@ double EatEX(Pacman::GameField a, int x, int y) {
         x = ddx[Head]; y = ddy[Head];    
         for (Pacman::Direction i = Pacman::stay; i <= 4; ++i)
             if (a.MoveValid(x, y, i)) {
-                int xx = (x + dx[i]) % a.height;
-                int yy = (y + dy[i]) % a.width;
+                int xx = (x + dx[i] + a.height) % a.height;
+                int yy = (y + dy[i] + a.width) % a.width;
                 if (t[xx][yy] == 0) {
                     ++Tail;
                     ddx[Tail] = xx; ddy[Tail] = yy;
@@ -923,8 +923,8 @@ double EatEX(Pacman::GameField a, int x, int y) {
             if (a.fieldStatic[x][y] & generator) {
                 for (int i = -1; i <= 1; ++i)
                     for (int j = -1; j <= 1; ++j)
-                        if (t[x+i][y+j])
-                            ans += EXPoint(f[x+i][y+j] + a.generatorTurnLeft, 2);
+                        if (t[(x+i+a.height) % a.height][(y+j+a.width) % a.width])
+                            ans += EXPoint(f[(x+i+a.height) % a.height][(y+j+a.width) % a.width] + a.generatorTurnLeft, 2);
             }
         }
     return ans;
@@ -966,6 +966,7 @@ int main() {
         "我跑的比qwb还快"
     };
     int JiaoXiao = rand() % 7;
+    gameField.DebugPrint();
     gameField.WriteOutput((Pacman::Direction)(ans - 1), Text[JiaoXiao], data, globalData);
     return 0;
 }
