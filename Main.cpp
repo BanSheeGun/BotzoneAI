@@ -898,7 +898,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     int Head = 1, Tail = 1;
     for (; Head <= Tail; ++Head) {
         x = ddx[Head]; y = ddy[Head];    
-        for (Pacman::Direction i = Pacman::stay; i <= 4; ++i)
+        for (Pacman::Direction i = Pacman::up; i <= 3; ++i)
             if (a.MoveValid(x, y, i)) {
                 int xx = (x + dx[i] + a.height) % a.height;
                 int yy = (y + dy[i] + a.width) % a.width;
@@ -943,11 +943,16 @@ int main() {
     double ActEX[9];
     memset(ActEX, 0, sizeof(ActEX));
     int i, ans = 0;
-
-    for (Pacman::Direction i = Pacman::stay; i <= 4; ++i)
+    for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
         if (gameField.ActionValid(myID, i)) {
-            int xx = (gameField.players[myID].row+dx[i]) % gameField.height;
-            int yy = (gameField.players[myID].col+dy[i]) % gameField.width;
+            if (i == stay) {
+                int xx = (gameField.players[myID].row) % gameField.height;
+                int yy = (gameField.players[myID].col) % gameField.width;
+                ActEX[i+1] = EatEX(gameField, xx, yy);
+                continue;
+            }
+            int xx = (gameField.players[myID].row+dx[i] + gameField.height) % gameField.height;
+            int yy = (gameField.players[myID].col+dy[i] + gameField.width) % gameField.width;
             ActEX[i+1] = EatEX(gameField, xx, yy);
         }
 
