@@ -883,7 +883,7 @@ namespace Helpers
 using namespace Pacman;
 
 double EXPoint(int time, int point) {
-    double ans = 999999999;
+    double ans = 99999;
     if (time > 30) time = 30;
     for (int i = 1; i <= time; ++i)
         ans /= 3;
@@ -897,6 +897,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     int ddx[400], ddy[400];
     memset(f, 0, sizeof(f));
     memset(t, 0, sizeof(t));
+    printf("\n%d %d\n",x, y);
     ddx[1] = x, ddy[1] = y; t[x][y] = 1;
     int Head = 1, Tail = 1;
     for (; Head <= Tail; ++Head) {
@@ -912,6 +913,13 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                 }
             }
     }
+
+    /* DEBUG
+    for (x = 0; x < a.width; ++x) {
+        for (y = 0; y < a.height; ++y)
+            printf("%.0lf ", f[y][x]);
+        printf("\n");
+    } */
 
     for (x = 0; x < a.height; ++x)
         for (y = 0; y < a.width; ++y) {
@@ -949,13 +957,13 @@ int main() {
     for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
         if (gameField.ActionValid(myID, i)) {
             if (i == stay) {
-                int xx = (gameField.players[myID].row) % gameField.height;
-                int yy = (gameField.players[myID].col) % gameField.width;
+                int xx = (gameField.players[myID].col) % gameField.height;
+                int yy = (gameField.players[myID].row) % gameField.width;
                 ActEX[i+1] = EatEX(gameField, xx, yy);
                 continue;
             }
-            int xx = (gameField.players[myID].row+dx[i] + gameField.height) % gameField.height;
-            int yy = (gameField.players[myID].col+dy[i] + gameField.width) % gameField.width;
+            int xx = (gameField.players[myID].col+dx[i] + gameField.height) % gameField.height;
+            int yy = (gameField.players[myID].row+dy[i] + gameField.width) % gameField.width;
             ActEX[i+1] = EatEX(gameField, xx, yy);
         }
 
