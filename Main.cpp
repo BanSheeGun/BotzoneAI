@@ -881,7 +881,7 @@ namespace Helpers
 }   
 
 using namespace Pacman;
-
+//此函数用于算距离time的分值为point的得分期望。
 double EXPoint(int time, int point) {
     double ans = 99999;
     if (time > 30) time = 30;
@@ -941,7 +941,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
             }
         }
 
-    //Eat Others and far away from others....
+    //吃人的得分期望，将其他人看做果子，得分为期望差。
     Player *p;
     for (int i = 0; i < 4; ++i) {
         p = &(a.players[i]);
@@ -961,7 +961,9 @@ int main() {
     int myID = gameField.ReadInput("input.txt", data, globalData); // 输入，并获得自己ID
     srand(Pacman::seed + myID);
 
-// GP is Coming....    
+    /* 以下为GP的代码 
+    首先算出各个方向的期望
+	*/
     double ActEX[9];
     memset(ActEX, 0, sizeof(ActEX));
     int i, ans = 0;
@@ -979,6 +981,8 @@ int main() {
             ActEX[i+1] = EatEX(gameField, xx, yy);
         }
 
+
+    //选取期望最大的行为
     ans = 0;
     for (i = 0; i <= 4; ++i)
         if (ActEX[ans] < ActEX[i])
