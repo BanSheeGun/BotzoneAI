@@ -968,8 +968,9 @@ int main() {
     首先算出各个方向的期望
 	*/
     double ActEX[9];
-    memset(ActEX, 0, sizeof(ActEX));
-    int i, ans = 0;
+    for (int i = 0; i < 9; ++i)
+        ActEX[i] = -33333;
+    Pacman::Direction ans;
     MyS = gameField.players[myID].strength;
     for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
         if (gameField.ActionValid(myID, i)) {
@@ -986,10 +987,13 @@ int main() {
 
 
     //选取期望最大的行为
-    ans = 0;
-    for (i = 0; i <= 4; ++i)
-        if (ActEX[ans] < ActEX[i])
+    ans = stay;
+    for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
+        if (ActEX[ans+1] < ActEX[i+1])
             ans = i;
+    if (!gameField.ActionValid(myID, ans)) {
+        ans = (Pacman::Direction)Helpers::RandBetween(4, 7);
+    }
 
     string Text[] = {
         "苟利国家生死以",
@@ -1002,6 +1006,6 @@ int main() {
     };
     int JiaoXiao = rand() % 7;
     gameField.DebugPrint();
-    gameField.WriteOutput((Pacman::Direction)(ans - 1), Text[JiaoXiao], data, globalData);
+    gameField.WriteOutput(ans, Text[JiaoXiao], data, globalData);
     return 0;
 }
