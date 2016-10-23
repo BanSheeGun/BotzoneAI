@@ -881,7 +881,7 @@ namespace Helpers
 }   
 
 using namespace Pacman;
-//此函数用于算距离time的分值为point的得分期望。
+//此函数用于算距离time的分值为point的得分期望。	
 double EXPoint(int time, int point) {
     double ans = 99999;
     if (time > 30) time = 30;
@@ -894,6 +894,7 @@ double EXPoint(int time, int point) {
 int MyS;
 
 double EatEX(Pacman::GameField &a, int x, int y) {
+    //BFS部分，使用f数组存储到当前点的距离。
     double f[20][20], ans = 0;
     bool t[20][20];
     int ddx[400], ddy[400];
@@ -923,6 +924,8 @@ double EatEX(Pacman::GameField &a, int x, int y) {
         printf("\n");
     } */
 
+
+    //分别将大果子，小果子的，果子生成器的期望算出
     for (x = 0; x < a.width; ++x)
         for (y = 0; y < a.height; ++y) {
             if (t[x][y] == 1) {
