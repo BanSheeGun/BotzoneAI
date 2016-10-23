@@ -883,7 +883,10 @@ namespace Helpers
 using namespace Pacman;
 
 double EXPoint(int time, int point) {
-    double ans = 1 / (time + 1.0);
+    double ans = 999999999;
+    if (time > 30) time = 30;
+    for (int i = 1; i <= time; ++i)
+        ans /= 3;
     ans = ans * point;
     return ans;
 }
