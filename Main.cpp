@@ -897,7 +897,6 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     int ddx[400], ddy[400];
     memset(f, 0, sizeof(f));
     memset(t, 0, sizeof(t));
-    printf("\n%d %d\n",x, y);
     ddx[1] = x, ddy[1] = y; t[x][y] = 1;
     int Head = 1, Tail = 1;
     for (; Head <= Tail; ++Head) {
