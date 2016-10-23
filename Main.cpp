@@ -891,6 +891,8 @@ double EXPoint(int time, int point) {
     return ans;
 }
 
+int MyS;
+
 double EatEX(Pacman::GameField &a, int x, int y) {
     double f[20][20], ans = 0;
     bool t[20][20];
@@ -938,6 +940,15 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                             ans += EXPoint(f[(x+i+a.width) % a.width][(y+j+a.height) % a.height] + a.generatorTurnLeft, 2);
             }
         }
+
+    //Eat Others and far away from others....
+    Player *p;
+    for (int i = 0; i < 4; ++i) {
+        p = &(a.players[i]);
+        if (!p->dead) {
+            ans += EXPoint(f[p->col][p->row], MyS - p->strength);
+        }
+    }
     return ans;
 }
 
@@ -954,6 +965,7 @@ int main() {
     double ActEX[9];
     memset(ActEX, 0, sizeof(ActEX));
     int i, ans = 0;
+    MyS = gameField.players[myID].strength;
     for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
         if (gameField.ActionValid(myID, i)) {
             if (i == stay) {
