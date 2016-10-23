@@ -902,9 +902,9 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     for (; Head <= Tail; ++Head) {
         x = ddx[Head]; y = ddy[Head];    
         for (Pacman::Direction i = Pacman::up; i <= 3; ++i)
-            if (a.MoveValid(x, y, i)) {
-                int xx = (x + dx[i] + a.height) % a.height;
-                int yy = (y + dy[i] + a.width) % a.width;
+            if (a.MoveValid(y, x, i)) {
+                int xx = (x + dx[i] + a.width) % a.width;
+                int yy = (y + dy[i] + a.height) % a.height;
                 if (t[xx][yy] == 0) {
                     ++Tail;
                     ddx[Tail] = xx; ddy[Tail] = yy;
@@ -913,28 +913,29 @@ double EatEX(Pacman::GameField &a, int x, int y) {
             }
     }
 
-    /* DEBUG
-    for (x = 0; x < a.width; ++x) {
-        for (y = 0; y < a.height; ++y)
+    /* DEBUG 
+    printf("\n");
+    for (x = 0; x < a.height; ++x) {
+        for (y = 0; y < a.width; ++y)
             printf("%.0lf ", f[y][x]);
         printf("\n");
     } */
 
-    for (x = 0; x < a.height; ++x)
-        for (y = 0; y < a.width; ++y) {
+    for (x = 0; x < a.width; ++x)
+        for (y = 0; y < a.height; ++y) {
             if (t[x][y] == 1) {
-                if (a.fieldContent[x][y] & smallFruit) {
+                if (a.fieldContent[y][x] & smallFruit) {
                     ans += EXPoint(f[x][y], 2);
                 }
-                if (a.fieldContent[x][y] & largeFruit) {
+                if (a.fieldContent[y][x] & largeFruit) {
                     ans += EXPoint(f[x][y], 4);
                 }
             }
-            if (a.fieldStatic[x][y] & generator) {
+            if (a.fieldStatic[y][x] & generator) {
                 for (int i = -1; i <= 1; ++i)
                     for (int j = -1; j <= 1; ++j)
-                        if (t[(x+i+a.height) % a.height][(y+j+a.width) % a.width])
-                            ans += EXPoint(f[(x+i+a.height) % a.height][(y+j+a.width) % a.width] + a.generatorTurnLeft, 2);
+                        if (t[(x+i+a.width) % a.width][(y+j+a.height) % a.height])
+                            ans += EXPoint(f[(x+i+a.width) % a.width][(y+j+a.height) % a.height] + a.generatorTurnLeft, 2);
             }
         }
     return ans;
@@ -956,13 +957,13 @@ int main() {
     for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
         if (gameField.ActionValid(myID, i)) {
             if (i == stay) {
-                int xx = (gameField.players[myID].col) % gameField.height;
-                int yy = (gameField.players[myID].row) % gameField.width;
+                int xx = (gameField.players[myID].col) % gameField.width;
+                int yy = (gameField.players[myID].row) % gameField.height;
                 ActEX[i+1] = EatEX(gameField, xx, yy);
                 continue;
             }
-            int xx = (gameField.players[myID].col+dx[i] + gameField.height) % gameField.height;
-            int yy = (gameField.players[myID].row+dy[i] + gameField.width) % gameField.width;
+            int xx = (gameField.players[myID].col+dx[i] + gameField.width) % gameField.width;
+            int yy = (gameField.players[myID].row+dy[i] + gameField.height) % gameField.height;
             ActEX[i+1] = EatEX(gameField, xx, yy);
         }
 
