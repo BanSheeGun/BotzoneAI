@@ -891,7 +891,7 @@ double EXPoint(int time, int point) {
     return ans;
 }
 
-int MyS, MySUP, MySS;
+int MyS, MySUP, MySS, MMId;
 
 double EatEX(Pacman::GameField &a, int x, int y) {
     //BFS部分，使用f数组存储到当前点的距离。
@@ -948,8 +948,10 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     Player *p;
     for (int i = 0; i < 4; ++i) {
         p = &(a.players[i]);
-        if (!p->dead) {
-            ans += EXPoint(f[p->col][p->row], MySS - p->strength);
+        if (!p->dead && i != MMId) {
+            int HIS = p->strength;
+            if (p->powerUpLeft != 0) HIS += 10;
+            ans += EXPoint(f[p->col][p->row], MySS - HIS);
         }
     }
     return ans;
@@ -967,11 +969,17 @@ int main() {
     /* 以下为GP的代码 
     首先算出各个方向的期望
 	*/
+
+
+    gameField.DebugPrint();
+
+
     double ActEX[9];
     bool CanMove[9];
     Pacman::Direction ans;
     MyS = gameField.players[myID].strength;
     MySUP = gameField.players[myID].powerUpLeft;
+    MMId = myID;
     memset(ActEX, 0, sizeof(ActEX));
     memset(CanMove, 0, sizeof(CanMove));
     int a[4], cnt = 0;
@@ -1006,9 +1014,38 @@ int main() {
         gameField.PopState();
     }
 
+
+    gameField.DebugPrint();
+    //躲避别人的金光，基本保证不被打到，可以修改参数99999来调整猥琐程度。
+    for (int i = 1; i <= 3; ++i)
+        if (!gameField.players[a[i]].dead) {
+            for (i1 = (Direction)4; i1 <= 7; ++i1)
+                if (gameField.ActionValid(a[i], i1)) {
+                    gameField.actions[a[i]] = i1;
+                    gameField.NextTurn();
+                    MySS = gameField.players[myID].strength;
+                    gameField.PopState();
+                    if (MySS >= MyS) continue;
+                    for (i2 = stay; i2 <= 3; ++i2)
+                        if (gameField.ActionValid(myID, i2)) {
+                            gameField.actions[myID] = i2;
+                            gameField.NextTurn();
+                            MySS = gameField.players[myID].strength;
+                            if (MySS >= MyS) 
+                                ActEX[i2+1] += 99999;
+                            else
+                                ActEX[i2+1] -= 99999;
+                            gameField.PopState();
+                        }
+                }
+        }
+
+
+    gameField.DebugPrint();
+
     //选取期望最大的行为
     ans = stay;
-    for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
+    for (Pacman::Direction i = Pacman::stay; i < 4; ++i)
         if (!CanMove[i+1])
             if (ActEX[ans+1] < ActEX[i+1])
                 ans = i;
@@ -1023,7 +1060,6 @@ int main() {
         "我跑的比qwb还快"
     };
     int JiaoXiao = rand() % 7;
-    gameField.DebugPrint();
     gameField.WriteOutput(ans, Text[JiaoXiao], data, globalData);
     return 0;
 }
