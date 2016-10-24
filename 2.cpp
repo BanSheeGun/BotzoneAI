@@ -991,9 +991,6 @@ int main() {
     for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
         if (ActEX[ans+1] < ActEX[i+1])
             ans = i;
-    if (!gameField.ActionValid(myID, ans)) {
-        ans = (Pacman::Direction)Helpers::RandBetween(4, 7);
-    }
 
     string Text[] = {
         "苟利国家生死以",
