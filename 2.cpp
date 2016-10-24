@@ -886,12 +886,12 @@ double EXPoint(int time, int point) {
     double ans = 99999;
     if (time > 30) time = 30;
     for (int i = 1; i <= time; ++i)
-        ans /= 3;
+        ans /= 6;
     ans = ans * point;
     return ans;
 }
 
-int MyS;
+int MyS, MySUP, MySS;
 
 double EatEX(Pacman::GameField &a, int x, int y) {
     //BFS部分，使用f数组存储到当前点的距离。
@@ -930,10 +930,10 @@ double EatEX(Pacman::GameField &a, int x, int y) {
         for (y = 0; y < a.height; ++y) {
             if (t[x][y] == 1) {
                 if (a.fieldContent[y][x] & smallFruit) {
-                    ans += EXPoint(f[x][y], 2);
+                    ans += EXPoint(f[x][y], 1);
                 }
                 if (a.fieldContent[y][x] & largeFruit) {
-                    ans += EXPoint(f[x][y], 4);
+                    ans += EXPoint(f[x][y], 8);
                 }
             }
             if (a.fieldStatic[y][x] & generator) {
@@ -949,7 +949,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     for (int i = 0; i < 4; ++i) {
         p = &(a.players[i]);
         if (!p->dead) {
-            ans += EXPoint(f[p->col][p->row], MyS - p->strength);
+            ans += EXPoint(f[p->col][p->row], MySS - p->strength);
         }
     }
     return ans;
@@ -968,29 +968,50 @@ int main() {
     首先算出各个方向的期望
 	*/
     double ActEX[9];
-    for (int i = 0; i < 9; ++i)
-        ActEX[i] = -33333;
+    bool CanMove[9];
     Pacman::Direction ans;
     MyS = gameField.players[myID].strength;
-    for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
-        if (gameField.ActionValid(myID, i)) {
-            if (i == stay) {
-                int xx = (gameField.players[myID].col) % gameField.width;
-                int yy = (gameField.players[myID].row) % gameField.height;
-                ActEX[i+1] = EatEX(gameField, xx, yy);
-                continue;
-            }
-            int xx = (gameField.players[myID].col+dx[i] + gameField.width) % gameField.width;
-            int yy = (gameField.players[myID].row+dy[i] + gameField.height) % gameField.height;
-            ActEX[i+1] = EatEX(gameField, xx, yy);
+    MySUP = gameField.players[myID].powerUpLeft;
+    memset(ActEX, 0, sizeof(ActEX));
+    memset(CanMove, 0, sizeof(CanMove));
+    int a[4], cnt = 0;
+    for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
+        if (i != myID)
+            a[++cnt] = i;
+    Pacman::Direction i1, i2, i3;
+    for (Pacman::Direction i = stay; i <= 3; ++i) {
+        if (!gameField.ActionValid(myID, i)) {
+            CanMove[i+1] = 1;
+            continue;
         }
-
+        cnt = 0;
+        gameField.actions[myID] = i;
+        for (i1 = stay; i1 <= 3; ++i1)
+            for (i2 = stay; i2 <= 3; ++i2)
+                for (i3 = stay; i3 <= 3; ++i3)
+                    if (gameField.ActionValid(a[1], i1) && gameField.ActionValid(a[2], i2) && gameField.ActionValid(a[3], i3)) {
+                        ++cnt;
+                        gameField.actions[a[1]] = i1;gameField.actions[a[2]] = i2;gameField.actions[a[3]] = i3;
+                        bool Over = gameField.NextTurn();
+                        MySS = gameField.players[myID].strength + gameField.players[myID].powerUpLeft;
+                        if (gameField.players[myID].dead)
+                            CanMove[i+1] = 1;
+                        ActEX[i+1] += EatEX(gameField, gameField.players[myID].col, gameField.players[myID].row);
+                        gameField.PopState();
+                    }
+        if (cnt != 0)  ActEX[i+1] /= cnt;
+        gameField.NextTurn();
+        ActEX[i+1] += EXPoint(0, gameField.players[myID].strength - MyS);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP));
+        gameField.PopState();
+    }
 
     //选取期望最大的行为
     ans = stay;
     for (Pacman::Direction i = Pacman::stay; i <= 3; ++i)
-        if (ActEX[ans+1] < ActEX[i+1])
-            ans = i;
+        if (!CanMove[i+1])
+            if (ActEX[ans+1] < ActEX[i+1])
+                ans = i;
 
     string Text[] = {
         "苟利国家生死以",
