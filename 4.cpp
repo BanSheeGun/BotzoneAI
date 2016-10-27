@@ -1016,56 +1016,8 @@ int main() {
         gameField.PopState();
     }
 
-
-    gameField.DebugPrint();
-    //躲避别人的金光，基本保证不被打到，可以修改参数9999来调整猥琐程度。
-/*  for (int i = 1; i <= 3; ++i)
-        if (!gameField.players[a[i]].dead) {
-            for (i1 = (Direction)4; i1 <= 7; ++i1)
-                if (gameField.ActionValid(a[i], i1)) {
-                    gameField.actions[a[i]] = i1;
-                    gameField.NextTurn();
-                    MySS = gameField.players[myID].strength;
-                    gameField.PopState();
-                    if (MySS >= MyS) continue;
-                    for (i2 = stay; i2 <= 3; ++i2)
-                        if (gameField.ActionValid(myID, i2)) {
-                            gameField.actions[myID] = i2;
-                            gameField.NextTurn();
-                            MySS = gameField.players[myID].strength;
-                            if (MySS >= MyS) 
-                                ActEX[i2+1] += 999;
-                            else
-                                ActEX[i2+1] -= 999;
-                            gameField.PopState();
-                        }
-                }
-        }
-
-    for (i1 = up; i1 <= 3; ++i1) 
-        if (gameField.ActionValid(myID, i1)) {
-            gameField.actions[myID] = i1;
-            gameField.NextTurn();
-            MySS = gameField.players[myID].strength;
-            gameField.PopState();
-            for (int i = 1; i <= 3; ++i) 
-                if (!gameField.players[a[i]].dead) {
-                    bool EH = 0;
-                    for (i2 = (Direction)4; i2 <= 7; ++i2)
-                        if (gameField.ActionValid(a[i], i2)) {
-                            gameField.actions[a[i]] = i2;
-                            gameField.NextTurn();
-                            MyS = gameField.players[a[i]].strength;
-                            if (MyS < MySS) EH = 1;
-                            gameField.PopState();
-                        }
-                    if (EH) ActEX[i1 + 1] -= 999;
-                }
-        }
-*/
-
-    gameField.DebugPrint();
-
+    
+    
     //选取期望最大的行为
     ans = stay;
     for (Pacman::Direction i = Pacman::stay; i < 4; ++i)
