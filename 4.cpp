@@ -949,10 +949,13 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     for (int i = 0; i < 4; ++i) {
         p = &(a.players[i]);
         if (!p->dead && i != MMId) {
-            double HIS = p->strength + 0.7;
-            if (p->powerUpLeft != 0) HIS += 10;
+            double HIS = p->strength;
             HIS = MySS - HIS;
-            if (HIS > 0) HIS /= 10.0;
+            if (HIS >= 0) 
+                HIS /= 10.0;
+            else {
+                HIS /= 3.0;
+            }
             ans += EXPoint(f[p->col][p->row], HIS);
         }
     }
@@ -971,10 +974,7 @@ int main() {
     /* 以下为GP的代码 
     首先算出各个方向的期望
 	*/
-
-
     gameField.DebugPrint();
-
 
     double ActEX[9];
     bool CanMove[9];
@@ -982,12 +982,15 @@ int main() {
     MyS = gameField.players[myID].strength;
     MySUP = gameField.players[myID].powerUpLeft;
     MMId = myID;
-    memset(ActEX, 0, sizeof(ActEX));
     memset(CanMove, 0, sizeof(CanMove));
     int a[4], cnt = 0;
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
         if (i != myID)
             a[++cnt] = i;
+    for (int i = 0; i <= 8; ++i)
+        ActEX[i] = Helpers::RandBetween(1, i+10) / 100.0;
+
+
     Pacman::Direction i1, i2, i3, i4;
     for (Pacman::Direction i = stay; i <= 3; ++i) {
         if (!gameField.ActionValid(myID, i)) {
@@ -1003,7 +1006,7 @@ int main() {
                         ++cnt;
                         gameField.actions[a[1]] = i1;gameField.actions[a[2]] = i2;gameField.actions[a[3]] = i3;
                         bool Over = gameField.NextTurn();
-                        MySS = gameField.players[myID].strength + gameField.players[myID].powerUpLeft;
+                        MySS = gameField.players[myID].strength;
                         if (gameField.players[myID].dead)
                             CanMove[i+1] = 1;
                         ActEX[i+1] += EatEX(gameField, gameField.players[myID].col, gameField.players[myID].row);
@@ -1012,7 +1015,6 @@ int main() {
         if (cnt != 0)  ActEX[i+1] /= cnt;
         gameField.NextTurn();
         ActEX[i+1] += EXPoint(0, gameField.players[myID].strength - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP));
         gameField.PopState();
     }
 
@@ -1021,6 +1023,7 @@ int main() {
     MyS = gameField.players[myID].strength;    
     for (i1 = (Direction)4; i1 <= 7; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
+            int CanHit = 0;
             gameField.actions[myID] = i1;
             int OH = 0;
             for (int i = 1; i <= 3; ++i) {
@@ -1038,6 +1041,7 @@ int main() {
                         else {
                             MySS -= MyS;
                             if (MySS > 0) ActEX[i1+1] += EXPoint(3, MySS);
+                            CanHit = 1;
                         }
                     }
                 if (WUWU) OH = 1;
@@ -1048,6 +1052,8 @@ int main() {
                 gameField.PopState();
                 MySS -= MyS;
                 if (MySS > 0) ActEX[i1+1] += EXPoint(1, MySS);
+            } else {
+                ActEX[i1+1] -= (99999 - CanHit * 33333);
             }
         }
 
@@ -1075,7 +1081,7 @@ int main() {
 
     //防止走进死胡同，死胡同的定义式，在走完这一步后，别人存在一种走法，无论你怎么走都能射死你。
     for (i1 = stay; i1 <= 3; ++i1)
-        if (gameField.ActionValid(myID, i1)) {
+        if (gameField.ActionValid(myID, i1) && gameField.turnID < 99) {
             for (int i = 1; i <= 3; ++i)
                 for (i2 = stay; i2 <= 3; ++i2) 
                     if (gameField.ActionValid(a[i], i2)) {
@@ -1101,9 +1107,17 @@ int main() {
                     }
         }
 
+    MyS = gameField.players[myID].strength;
+    if (MySUP > 0) MyS -= 10;
+    for (i1 = stay; i1 <= 7; ++i1)
+        if (!gameField.ActionValid(myID, i1))
+            CanMove[i1+1] = 1;
+    for (i1 = (Direction)4; i1 <= 7; ++i1)
+        if (MyS + 3 <= gameField.SKILL_COST)
+            CanMove[i1+1] = 1;
     //选取期望最大的行为
     ans = stay;
-    for (Pacman::Direction i = Pacman::stay; i < 4; ++i)
+    for (Pacman::Direction i = stay; i <= 7; ++i)
         if (!CanMove[i+1])
             if (ActEX[ans+1] < ActEX[i+1])
                 ans = i;
