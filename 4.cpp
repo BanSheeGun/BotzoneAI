@@ -886,7 +886,7 @@ double EXPoint(int time, double point) {
     double ans = 99999;
     if (time > 30) time = 30;
     for (int i = 1; i <= time; ++i)
-        ans /= 6;
+        ans /= 4;
     ans = ans * point;
     return ans;
 }
@@ -933,7 +933,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                     ans += EXPoint(f[x][y], 1);
                 }
                 if (a.fieldContent[y][x] & largeFruit) {
-                    ans += EXPoint(f[x][y], 8);
+                    ans += EXPoint(f[x][y], 6);
                 }
             }
             if (a.fieldStatic[y][x] & generator) {
@@ -988,7 +988,7 @@ int main() {
         if (i != myID)
             a[++cnt] = i;
     for (int i = 0; i <= 8; ++i)
-        ActEX[i] = Helpers::RandBetween(1, i+10) / 100.0;
+        ActEX[i] = Helpers::RandBetween(1, i+10) / 10000000.0;
 
 
     Pacman::Direction i1, i2, i3, i4;
@@ -1015,11 +1015,13 @@ int main() {
         if (cnt != 0)  ActEX[i+1] /= cnt;
         gameField.NextTurn();
         ActEX[i+1] += EXPoint(0, gameField.players[myID].strength - MyS);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 2);
         gameField.PopState();
     }
 
 
     //枚举4种金光，如果必定能射到，增加收益作为Point加入期望
+    bool CanCanHit = 0;
     MyS = gameField.players[myID].strength;    
     for (i1 = (Direction)4; i1 <= 7; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
@@ -1054,6 +1056,7 @@ int main() {
                 if (MySS > 0) ActEX[i1+1] += EXPoint(1, MySS);
             } else {
                 ActEX[i1+1] -= (99999 - CanHit * 33333);
+                CanCanHit = 1;
             }
         }
 
@@ -1113,7 +1116,7 @@ int main() {
         if (!gameField.ActionValid(myID, i1))
             CanMove[i1+1] = 1;
     for (i1 = (Direction)4; i1 <= 7; ++i1)
-        if (MyS + 3 <= gameField.SKILL_COST)
+        if (MyS + 3 <= gameField.SKILL_COST || (!CanCanHit))
             CanMove[i1+1] = 1;
     //选取期望最大的行为
     ans = stay;
