@@ -1016,6 +1016,8 @@ int main() {
         gameField.PopState();
     }
 
+
+    //枚举4种金光，如果必定能射到，增加收益作为Point加入期望
     MyS = gameField.players[myID].strength;    
     for (i1 = (Direction)4; i1 <= 7; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
