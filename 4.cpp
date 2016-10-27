@@ -988,7 +988,7 @@ int main() {
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
         if (i != myID)
             a[++cnt] = i;
-    Pacman::Direction i1, i2, i3;
+    Pacman::Direction i1, i2, i3, i4;
     for (Pacman::Direction i = stay; i <= 3; ++i) {
         if (!gameField.ActionValid(myID, i)) {
             CanMove[i+1] = 1;
@@ -1030,9 +1030,15 @@ int main() {
                         int HisS = gameField.players[a[i]].strength;
                         gameField.actions[a[i]] = i2;
                         gameField.NextTurn();
+                        MySS = gameField.players[myID].strength;
                         int HisSS = gameField.players[a[i]].strength;
                         gameField.PopState();
-                        if (HisSS >= HisS) WUWU = 0;
+                        if (HisSS >= HisS) 
+                            WUWU = 0;
+                        else {
+                            MySS -= MyS;
+                            if (MySS > 0) ActEX[i1+1] += EXPoint(3, MySS);
+                        }
                     }
                 if (WUWU) OH = 1;
             }
@@ -1045,6 +1051,55 @@ int main() {
             }
         }
 
+    //防止下一步撞到别人的金光上，权重目前较小
+    for (i1 = up; i1 <= 3; ++i1) 
+        if (gameField.ActionValid(myID, i1)) {
+            gameField.actions[myID] = i1;
+            gameField.NextTurn();
+            MySS = gameField.players[myID].strength;
+            gameField.PopState();
+            for (int i = 1; i <= 3; ++i) 
+                if (!gameField.players[a[i]].dead) {
+                    bool EH = 0;
+                    for (i2 = (Direction)4; i2 <= 7; ++i2)
+                        if (gameField.ActionValid(a[i], i2)) {
+                            gameField.actions[a[i]] = i2;
+                            gameField.NextTurn();
+                            MyS = gameField.players[a[i]].strength;
+                            if (MyS < MySS) EH = 1;
+                            gameField.PopState();
+                        }
+                    if (EH) ActEX[i1 + 1] -= 999;
+                }
+        }
+
+    //防止走进死胡同，死胡同的定义式，在走完这一步后，别人存在一种走法，无论你怎么走都能射死你。
+    for (i1 = stay; i1 <= 3; ++i1)
+        if (gameField.ActionValid(myID, i1)) {
+            for (int i = 1; i <= 3; ++i)
+                for (i2 = stay; i2 <= 3; ++i2) 
+                    if (gameField.ActionValid(a[i], i2)) {
+                        gameField.actions[myID] = i1;
+                        gameField.actions[a[i]] = i2;
+                        gameField.NextTurn();
+                        MyS = gameField.players[myID].strength;
+                        bool BiSi;
+                        for (i3 = (Direction)4; i3 <= 7; ++i3)
+                            if (gameField.ActionValid(a[i], i3)) {
+                                BiSi = 1;
+                                for (i4 = stay; i4 <= 3; ++i4) {
+                                    gameField.actions[myID] = i4;
+                                    gameField.actions[a[i]] = i3;
+                                    gameField.NextTurn();
+                                    MySS = gameField.players[myID].strength;
+                                    gameField.PopState();
+                                    if (MySS >= MyS) BiSi = 0;
+                                }
+                                if (BiSi) ActEX[i1+1] -= 99999;
+                            }
+                        gameField.PopState();
+                    }
+        }
 
     //选取期望最大的行为
     ans = stay;
