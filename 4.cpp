@@ -1016,8 +1016,34 @@ int main() {
         gameField.PopState();
     }
 
-    
-    
+    MyS = gameField.players[myID].strength;    
+    for (i1 = (Direction)4; i1 <= 7; ++i1) 
+        if (gameField.ActionValid(myID, i1)) {
+            gameField.actions[myID] = i1;
+            int OH = 0;
+            for (int i = 1; i <= 3; ++i) {
+                int WUWU = 1;
+                for (i2 = stay; i2 <= 3; ++i2)
+                    if (gameField.ActionValid(a[i], i2)) {
+                        int HisS = gameField.players[a[i]].strength;
+                        gameField.actions[a[i]] = i2;
+                        gameField.NextTurn();
+                        int HisSS = gameField.players[a[i]].strength;
+                        gameField.PopState();
+                        if (HisSS >= HisS) WUWU = 0;
+                    }
+                if (WUWU) OH = 1;
+            }
+            if (OH) {
+                gameField.NextTurn();
+                MySS = gameField.players[myID].strength;
+                gameField.PopState();
+                MySS -= MyS;
+                if (MySS > 0) ActEX[i1+1] += EXPoint(1, MySS);
+            }
+        }
+
+
     //选取期望最大的行为
     ans = stay;
     for (Pacman::Direction i = Pacman::stay; i < 4; ++i)
