@@ -883,10 +883,10 @@ namespace Helpers
 using namespace Pacman;
 //此函数用于算距离time的分值为point的得分期望。	
 double EXPoint(int time, double point) {
-    double ans = 99999;
+    double ans = 999999;
     if (time > 30) time = 30;
     for (int i = 1; i <= time; ++i)
-        ans /= 4;
+        ans /= 6;
     ans = ans * point;
     return ans;
 }
@@ -933,7 +933,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                     ans += EXPoint(f[x][y], 1);
                 }
                 if (a.fieldContent[y][x] & largeFruit) {
-                    ans += EXPoint(f[x][y], 6);
+                    ans += EXPoint(f[x][y], 2);
                 }
             }
             if (a.fieldStatic[y][x] & generator) {
@@ -952,7 +952,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
             double HIS = p->strength;
             HIS = MySS - HIS;
             if (HIS >= 0) 
-                HIS /= 10.0;
+                HIS /= 5.0;
             else {
                 HIS /= 3.0;
             }
@@ -988,10 +988,21 @@ int main() {
         if (i != myID)
             a[++cnt] = i;
     for (int i = 0; i <= 8; ++i)
-        ActEX[i] = Helpers::RandBetween(1, i+10) / 10000000.0;
+        ActEX[i] = Helpers::RandBetween(1, i+10) / 1e9;
 
 
     Pacman::Direction i1, i2, i3, i4;
+    for (i1 = stay; i1 <= 7; ++i1)
+        if (!gameField.ActionValid(myID, i1))
+            CanMove[i1+1] = 1;
+
+    MyS = gameField.players[myID].strength;
+    MySUP = gameField.players[myID].powerUpLeft;
+    if (MySUP > 0) MyS -= 10;
+    for (i1 = (Direction)4; i1 <= 7; ++i1)
+        if (MyS + 1 <= gameField.SKILL_COST)
+            CanMove[i1+1] = 1;
+
     for (Pacman::Direction i = stay; i <= 3; ++i) {
         if (!gameField.ActionValid(myID, i)) {
             CanMove[i+1] = 1;
@@ -1014,14 +1025,15 @@ int main() {
                     }
         if (cnt != 0)  ActEX[i+1] /= cnt;
         gameField.NextTurn();
-        ActEX[i+1] += EXPoint(0, gameField.players[myID].strength - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 2);
+        MySS = gameField.players[myID].strength;
+        if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
+        ActEX[i+1] += EXPoint(0, MySS - MyS);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 5);
         gameField.PopState();
     }
 
 
     //枚举4种金光，如果必定能射到，增加收益作为Point加入期望
-    bool CanCanHit = 0;
     MyS = gameField.players[myID].strength;    
     for (i1 = (Direction)4; i1 <= 7; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
@@ -1033,30 +1045,29 @@ int main() {
                 for (i2 = stay; i2 <= 3; ++i2)
                     if (gameField.ActionValid(a[i], i2)) {
                         int HisS = gameField.players[a[i]].strength;
+                        if (gameField.players[a[i]].powerUpLeft != 0) HisS -= 10;
                         gameField.actions[a[i]] = i2;
                         gameField.NextTurn();
                         MySS = gameField.players[myID].strength;
                         int HisSS = gameField.players[a[i]].strength;
+                        if (gameField.players[a[i]].powerUpLeft != 0) HisSS -= 10;
                         gameField.PopState();
                         if (HisSS >= HisS) 
                             WUWU = 0;
                         else {
                             MySS -= MyS;
-                            if (MySS > 0) ActEX[i1+1] += EXPoint(3, MySS);
-                            CanHit = 1;
+                            if (MySS > 0) ActEX[i1+1] += EXPoint(4, MySS);
+                            CanHit += 1;
+                            CanMove[i1+1] = 0;
                         }
                     }
                 if (WUWU) OH = 1;
             }
             if (OH) {
-                gameField.NextTurn();
-                MySS = gameField.players[myID].strength;
-                gameField.PopState();
-                MySS -= MyS;
-                if (MySS > 0) ActEX[i1+1] += EXPoint(1, MySS);
+                if (MySS > 0) ActEX[i1+1] += EXPoint(0, gameField.SKILL_COST / 2);
+                CanMove[i1+1] = 0;
             } else {
-                ActEX[i1+1] -= (99999 - CanHit * 33333);
-                CanCanHit = 1;
+                ActEX[i1+1] -= (1199999 - (CanHit) * 333333);
             }
         }
 
@@ -1070,15 +1081,18 @@ int main() {
             for (int i = 1; i <= 3; ++i) 
                 if (!gameField.players[a[i]].dead) {
                     bool EH = 0;
+                    bool Die = 0;
                     for (i2 = (Direction)4; i2 <= 7; ++i2)
                         if (gameField.ActionValid(a[i], i2)) {
                             gameField.actions[a[i]] = i2;
                             gameField.NextTurn();
-                            MyS = gameField.players[a[i]].strength;
+                            MyS = gameField.players[myID].strength;
                             if (MyS < MySS) EH = 1;
+                            if (gameField.players[myID].dead) Die = 1;
                             gameField.PopState();
                         }
-                    if (EH) ActEX[i1 + 1] -= 999;
+                    if (EH) ActEX[i1 + 1] -= 20000;
+                    if (Die) ActEX[i1 + 1] -= 999999;
                 }
         }
 
@@ -1092,32 +1106,29 @@ int main() {
                         gameField.actions[a[i]] = i2;
                         gameField.NextTurn();
                         MyS = gameField.players[myID].strength;
+                        MySUP = gameField.players[myID].powerUpLeft;
+                        if (MySUP > 0) MyS -= 10;
                         bool BiSi;
                         for (i3 = (Direction)4; i3 <= 7; ++i3)
                             if (gameField.ActionValid(a[i], i3)) {
                                 BiSi = 1;
-                                for (i4 = stay; i4 <= 3; ++i4) {
-                                    gameField.actions[myID] = i4;
-                                    gameField.actions[a[i]] = i3;
-                                    gameField.NextTurn();
-                                    MySS = gameField.players[myID].strength;
-                                    gameField.PopState();
-                                    if (MySS >= MyS) BiSi = 0;
-                                }
-                                if (BiSi) ActEX[i1+1] -= 99999;
+                                for (i4 = stay; i4 <= 3; ++i4) 
+                                    if (gameField.ActionValid(myID, i4)){
+                                        gameField.actions[myID] = i4;
+                                        gameField.actions[a[i]] = i3;
+                                        gameField.NextTurn();
+                                        MySS = gameField.players[myID].strength;
+                                        MySUP = gameField.players[myID].powerUpLeft;
+                                        if (MySUP > 0) MySS -= 10;
+                                        gameField.PopState();
+                                        if (MySS >= MyS) BiSi = 0;
+                                    }
+                                if (BiSi) ActEX[i1+1] -= EXPoint(0, 2);
                             }
                         gameField.PopState();
                     }
         }
 
-    MyS = gameField.players[myID].strength;
-    if (MySUP > 0) MyS -= 10;
-    for (i1 = stay; i1 <= 7; ++i1)
-        if (!gameField.ActionValid(myID, i1))
-            CanMove[i1+1] = 1;
-    for (i1 = (Direction)4; i1 <= 7; ++i1)
-        if (MyS + 3 <= gameField.SKILL_COST || (!CanCanHit))
-            CanMove[i1+1] = 1;
     //选取期望最大的行为
     ans = stay;
     for (Pacman::Direction i = stay; i <= 7; ++i)
