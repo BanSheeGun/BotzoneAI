@@ -933,7 +933,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                     ans += EXPoint(f[x][y], 1);
                 }
                 if (a.fieldContent[y][x] & largeFruit) {
-                    ans += EXPoint(f[x][y], 2);
+                    ans += EXPoint(f[x][y], 1);
                 }
             }
             if (a.fieldStatic[y][x] & generator) {
@@ -1028,7 +1028,7 @@ int main() {
         MySS = gameField.players[myID].strength;
         if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
         ActEX[i+1] += EXPoint(0, MySS - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 5);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 10);
         gameField.PopState();
     }
 
@@ -1072,7 +1072,7 @@ int main() {
         }
 
     //防止下一步撞到别人的金光上，权重目前较小
-    for (i1 = up; i1 <= 3; ++i1) 
+    for (i1 = stay; i1 <= 3; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
             gameField.actions[myID] = i1;
             gameField.NextTurn();
@@ -1084,6 +1084,7 @@ int main() {
                     bool Die = 0;
                     for (i2 = (Direction)4; i2 <= 7; ++i2)
                         if (gameField.ActionValid(a[i], i2)) {
+                            gameField.actions[myID] = i1;
                             gameField.actions[a[i]] = i2;
                             gameField.NextTurn();
                             MyS = gameField.players[myID].strength;
@@ -1091,7 +1092,7 @@ int main() {
                             if (gameField.players[myID].dead) Die = 1;
                             gameField.PopState();
                         }
-                    if (EH) ActEX[i1 + 1] -= 20000;
+                    if (EH) ActEX[i1 + 1] -= 200000;
                     if (Die) ActEX[i1 + 1] -= 999999;
                 }
         }
