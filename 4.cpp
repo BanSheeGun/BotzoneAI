@@ -1034,7 +1034,8 @@ int main() {
 
 
     //枚举4种金光，如果必定能射到，增加收益作为Point加入期望
-    MyS = gameField.players[myID].strength;    
+    MyS = gameField.players[myID].strength;
+    if (gameField.players[myID].powerUpLeft != 0) MyS -= 10;
     for (i1 = (Direction)4; i1 <= 7; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
             int CanHit = 0;
@@ -1044,15 +1045,12 @@ int main() {
                 int WUWU = 1;
                 for (i2 = stay; i2 <= 3; ++i2)
                     if (gameField.ActionValid(a[i], i2)) {
-                        int HisS = gameField.players[a[i]].strength;
-                        if (gameField.players[a[i]].powerUpLeft != 0) HisS -= 10;
                         gameField.actions[a[i]] = i2;
                         gameField.NextTurn();
                         MySS = gameField.players[myID].strength;
-                        int HisSS = gameField.players[a[i]].strength;
-                        if (gameField.players[a[i]].powerUpLeft != 0) HisSS -= 10;
+                        if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
                         gameField.PopState();
-                        if (HisSS >= HisS) 
+                        if (MySS <= MyS) 
                             WUWU = 0;
                         else {
                             MySS -= MyS;
