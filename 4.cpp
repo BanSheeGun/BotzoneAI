@@ -1028,7 +1028,7 @@ int main() {
         MySS = gameField.players[myID].strength;
         if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
         ActEX[i+1] += EXPoint(0, MySS - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 10);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 10.0);
         gameField.PopState();
     }
 
@@ -1067,7 +1067,7 @@ int main() {
                 if (MySS > 0) ActEX[i1+1] += EXPoint(0, gameField.SKILL_COST / 2);
                 CanMove[i1+1] = 0;
             } else {
-                ActEX[i1+1] -= (1199999 - (CanHit) * 333333);
+                ActEX[i1+1] -= (1199999 - (CanHit) * 33333);
             }
         }
 
@@ -1132,6 +1132,9 @@ int main() {
 
     //选取期望最大的行为
     ans = stay;
+    for (Pacman::Direction i = stay; i <= 7; ++i)
+        if (!CanMove[i+1])
+            ans = i;
     for (Pacman::Direction i = stay; i <= 7; ++i)
         if (!CanMove[i+1])
             if (ActEX[ans+1] < ActEX[i+1])
