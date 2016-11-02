@@ -1040,32 +1040,41 @@ int main() {
         if (gameField.ActionValid(myID, i1)) {
             int CanHit = 0;
             gameField.actions[myID] = i1;
-            int OH = 0;
+            int OH = 0,  S = 0, CC = 0;
             for (int i = 1; i <= 3; ++i) {
-                int WUWU = 1;
+                int WUWU = 1, C = 0;
+                int HisS = gameField.players[a[i]].strength;
+                if (gameField.players[a[i]].powerUpLeft != 0) HisS -= 10;
                 for (i2 = stay; i2 <= 3; ++i2)
                     if (gameField.ActionValid(a[i], i2)) {
+                        C = 1; ++S;
                         gameField.actions[a[i]] = i2;
                         gameField.NextTurn();
+                        int HisSS = gameField.players[a[i]].strength;
+                        if (gameField.players[a[i]].powerUpLeft != 0) HisSS -= 10;
                         MySS = gameField.players[myID].strength;
                         if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
                         gameField.PopState();
-                        if (MySS <= MyS) 
+                        if (MySS <= MyS || HisSS >= HisS) 
                             WUWU = 0;
                         else {
                             MySS -= MyS;
                             if (MySS > 0) ActEX[i1+1] += EXPoint(4, MySS);
                             CanHit += 1;
                             CanMove[i1+1] = 0;
+                            ++CC;
                         }
+                        gameField.actions[a[i]] = stay;
                     }
-                if (WUWU) OH = 1;
+                if (WUWU && C) OH = 1;
             }
             if (OH) {
                 if (MySS > 0) ActEX[i1+1] += EXPoint(0, gameField.SKILL_COST / 2);
                 CanMove[i1+1] = 0;
             } else {
-                ActEX[i1+1] -= (1199999 - (CanHit) * 33333);
+                double k = gameField.SKILL_COST / 2;
+                k = k * CC / S;
+                ActEX[i1+1] -= (1999999 - EXPoint(0, k));
             }
         }
 
@@ -1078,20 +1087,23 @@ int main() {
             gameField.PopState();
             for (int i = 1; i <= 3; ++i) 
                 if (!gameField.players[a[i]].dead) {
-                    bool EH = 0;
+                    int EH = 0, sum = 0;
                     bool Die = 0;
                     for (i2 = (Direction)4; i2 <= 7; ++i2)
                         if (gameField.ActionValid(a[i], i2)) {
+                            ++sum;
                             gameField.actions[myID] = i1;
                             gameField.actions[a[i]] = i2;
                             gameField.NextTurn();
                             MyS = gameField.players[myID].strength;
-                            if (MyS < MySS) EH = 1;
+                            if (MyS < MySS) EH += 1;
                             if (gameField.players[myID].dead) Die = 1;
                             gameField.PopState();
                         }
-                    if (EH) ActEX[i1 + 1] -= 200000;
-                    if (Die) ActEX[i1 + 1] -= 999999;
+                    double k = gameField.SKILL_COST * 1.5;
+                    k = k * EH / sum;
+                    if (EH) ActEX[i1 + 1] -= EXPoint(0, k);
+                    if (Die) ActEX[i1 + 1] -= EXPoint(0, gameField.players[myID].strength);
                 }
         }
 
@@ -1133,6 +1145,9 @@ int main() {
     for (Pacman::Direction i = stay; i <= 7; ++i)
         if (!CanMove[i+1])
             ans = i;
+    for (i1 = (Direction)4; i1 <= 7; ++i1)
+        ActEX[i1+1] += ActEX[stay+1];
+
     for (Pacman::Direction i = stay; i <= 7; ++i)
         if (!CanMove[i+1])
             if (ActEX[ans+1] < ActEX[i+1])
