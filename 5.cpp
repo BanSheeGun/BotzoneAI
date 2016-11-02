@@ -893,6 +893,87 @@ double EXPoint(int time, double point) {
 
 int MyS, MySUP, MySS, MMId;
 
+
+int HT[20][20];
+int dis[5];
+int vis[20][20];
+int HUT[20][20];
+
+int dfs(Pacman::GameField &a, int x, int y,int fx ,int fy) {
+    int tong = 0, xx, yy;
+    vis[x][y] = 1;
+    for (Direction i = up; i <= 3; ++i) 
+        if (a.MoveValid(x, y, i)) {
+            int yy = (y + dx[i] + a.width) % a.width;
+            int xx = (x + dy[i] + a.height) % a.height;
+            bool t1 = 1;
+            for (int j = 0; j <= 3; ++j)
+                if (a.players[j].strength > a.players[MMId].strength)
+                    if (a.players[j].row == xx && a.players[j].col == yy)
+                        t1 = 0;
+            if (t1 == 0  || (xx == fx && yy == fy)) continue;
+            if (vis[xx][yy]) {
+                tong = 1;
+            } else {
+                if (dfs(a, xx, yy, x, y))
+                    tong = 1;
+            }
+        }
+    if (tong) HT[x][y] = 1;
+    return tong;
+}
+
+
+int dfs1(Pacman::GameField &a, int x, int y, int t) {
+    int tong = 0, xx, yy;
+    vis[x][y] = 1; HUT[x][y] = t;
+    for (Direction i = up; i <= 3; ++i) 
+        if (a.MoveValid(x, y, i)) {
+            int yy = (y + dx[i] + a.width) % a.width;
+            int xx = (x + dy[i] + a.height) % a.height;
+            bool t1 = 1;
+            for (int j = 0; j <= 3; ++j)
+                if (a.players[j].strength > a.players[MMId].strength)
+                    if (a.players[j].row == xx && a.players[j].col == yy)
+                        t1 = 0;
+            if (t1 == 0 || vis[xx][yy]) continue;
+            if (!HT[xx][yy])
+                dfs1(a, xx, yy, t + 1);
+            else
+                dfs1(a, xx, yy, t);
+        }
+    return 0;
+}
+
+int SiHuTong(Pacman::GameField &a) {
+    memset(HT, 0, sizeof(HT));
+    memset(HUT, 0, sizeof(HUT));
+    memset(vis, 0, sizeof(vis));
+    int x, y, i, j;
+    for (i = 0; i < a.height; ++i)
+        for (j = 0; j < a.width; ++j) {
+            int s = 0;
+            if (a.fieldStatic[i][j] & wallSouth) ++s;
+            if (a.fieldStatic[i][j] & wallWest) ++s;
+            if (a.fieldStatic[i][j] & wallEast)  ++s;
+            if (a.fieldStatic[i][j] & wallNorth) ++s;
+            if (s <= 1) {
+                x = i; y = j;
+            }
+        }
+    dfs(a, x, y, -1, -1);    
+    memset(vis, 0, sizeof(vis));
+    dfs1(a, x, y, 0);
+/*  
+    for (int i = 0; i < a.height; ++i) {
+        for (int j = 0; j < a.width; ++j)
+            printf("%d ", HUT[i][j]);
+        printf("\n");
+    }  
+*/
+    return 0;
+}
+
 double EatEX(Pacman::GameField &a, int x, int y) {
     //BFS部分，使用f数组存储到当前点的距离。
     double f[20][20], ans = 0;
@@ -933,7 +1014,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                     ans += EXPoint(f[x][y], 1);
                 }
                 if (a.fieldContent[y][x] & largeFruit) {
-                    ans += EXPoint(f[x][y], 1);
+                    ans += EXPoint(f[x][y], 1.33);
                 }
             }
             if (a.fieldStatic[y][x] & generator) {
@@ -949,6 +1030,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     for (int i = 0; i < 4; ++i) {
         p = &(a.players[i]);
         if (!p->dead && i != MMId) {
+            dis[i] = f[p->col][p->row];
             double HIS = p->strength;
             HIS = MySS - HIS;
             if (HIS >= 0) 
@@ -1036,7 +1118,7 @@ int main() {
         MySS = gameField.players[myID].strength;
         if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
         ActEX[i+1] += EXPoint(0, MySS - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 10.0);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 9.0);
         gameField.PopState();
     }
 
@@ -1149,6 +1231,36 @@ int main() {
                             }
                         gameField.PopState();
                     }
+        }
+
+    SiHuTong(gameField);
+    int weixian = -1;
+    for (int i = 0; i <= 3; ++i)
+        if (gameField.players[i].strength > gameField.players[myID].strength) {
+            if (weixian = -1)
+                weixian = i;
+            else
+                if (dis[i] < dis[weixian]) weixian = i;
+        }
+
+    int now = HUT[gameField.players[myID].row][gameField.players[myID].col];
+    for (i1 = up; i1 <= 3; ++i1)
+        if (gameField.ActionValid(myID, i1) && (weixian != -1)) {
+            Fresh(gameField);
+            gameField.actions[myID] = i1;
+            gameField.NextTurn();
+            int noww = HUT[gameField.players[myID].row][gameField.players[myID].col];
+            gameField.PopState();
+            if (dis[weixian] >= 2 * noww) continue;
+            ActEX[i1 + 1] -= EXPoint(0, 0.9 * (noww - now));
+
+            if (weixian != -1) {
+                if (dis[weixian] <= noww) {
+                    ActEX[stay+1] += EXPoint(dis[weixian] / 2, 10);
+                } else {
+                    ActEX[i1 + 1] -= EXPoint(dis[weixian] / 2, 1);
+                }
+            }
         }
 
     //选取期望最大的行为
