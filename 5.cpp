@@ -1130,8 +1130,10 @@ int main() {
         if (gameField.ActionValid(myID, i1)) {
             int CanHit = 0;
             int OH = 0,  S = 0, CC = 0;
+            double k = 0;
             for (int i = 1; i <= 3; ++i) {
                 int WUWU = 1, C = 0;
+                S = 0;CC = 0;
                 int HisS = gameField.players[a[i]].strength;
                 if (gameField.players[a[i]].powerUpLeft != 0) HisS -= 10;
                 for (i2 = stay; i2 <= 3; ++i2)
@@ -1158,14 +1160,15 @@ int main() {
                         gameField.actions[a[i]] = stay;
                     }
                 if (WUWU && C) OH = 1;
+                if (S == 0) continue;
+                if ((1.0 * CC) / S > k) k = (1.0 * CC) / S;
             }
             if (OH) {
                 if (MySS > 0) ActEX[i1+1] += EXPoint(0, gameField.SKILL_COST / 2);
                 CanMove[i1+1] = 0;
             } else {
-                double k = gameField.SKILL_COST / 2;
-                k = k * CC / S;
-                ActEX[i1+1] -= (1999999 - EXPoint(0, k));
+                k *= gameField.SKILL_COST / 2;
+                ActEX[i1+1] -= (1599999 - EXPoint(0, k));
             }
         }
 
@@ -1194,6 +1197,7 @@ int main() {
                         }
                     double k = gameField.SKILL_COST * 1.5;
                     k = k * EH / sum;
+                    if (gameField.turnID <= 6) k /= 2;
                     if (EH) ActEX[i1 + 1] -= EXPoint(0, k);
                     if (Die) ActEX[i1 + 1] -= EXPoint(0, gameField.players[myID].strength);
                 }
