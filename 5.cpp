@@ -1,3 +1,5 @@
+
+
 /*
 * Pacman2 样例程序
 * 作者：zhouhy
@@ -881,23 +883,29 @@ namespace Helpers
 }   
 
 using namespace Pacman;
-//此函数用于算距离time的分值为point的得分期望。	
+//此函数用于算距离time的分值为point的得分期望。   
 double EXPoint(int time, double point) {
     double ans = 999999;
-    if (time > 30) time = 30;
+    if (time > 15) time = 15;
     for (int i = 1; i <= time; ++i)
         ans /= 6;
     ans = ans * point;
     return ans;
 }
 
-int MyS, MySUP, MySS, MMId;
-
-
+int MyS, MySUP, MySS, MMId, weixian;
 int HT[20][20];
 int dis[5];
 int vis[20][20];
 int HUT[20][20];
+int HTGZ[20][20];
+
+double ActEX[9];
+bool CanMove[9];
+bool mvsht[9];
+Pacman::Direction i1, i2, i3, i4, ans;
+int a[4], cnt = 0;
+bool disf = 1;
 
 int dfs(Pacman::GameField &a, int x, int y,int fx ,int fy) {
     int tong = 0, xx, yy;
@@ -906,12 +914,7 @@ int dfs(Pacman::GameField &a, int x, int y,int fx ,int fy) {
         if (a.MoveValid(x, y, i)) {
             int yy = (y + dx[i] + a.width) % a.width;
             int xx = (x + dy[i] + a.height) % a.height;
-            bool t1 = 1;
-            for (int j = 0; j <= 3; ++j)
-                if (a.players[j].strength > a.players[MMId].strength)
-                    if (a.players[j].row == xx && a.players[j].col == yy)
-                        t1 = 0;
-            if (t1 == 0  || (xx == fx && yy == fy)) continue;
+            if (xx == fx && yy == fy) continue;
             if (vis[xx][yy]) {
                 tong = 1;
             } else {
@@ -932,21 +935,20 @@ int dfs1(Pacman::GameField &a, int x, int y, int t) {
             int yy = (y + dx[i] + a.width) % a.width;
             int xx = (x + dy[i] + a.height) % a.height;
             bool t1 = 1;
-            for (int j = 0; j <= 3; ++j)
-                if (a.players[j].strength > a.players[MMId].strength)
-                    if (a.players[j].row == xx && a.players[j].col == yy)
-                        t1 = 0;
-            if (t1 == 0 || vis[xx][yy]) continue;
+            if (vis[xx][yy]) continue;
             if (!HT[xx][yy])
                 dfs1(a, xx, yy, t + 1);
+                if (!HT[x][y]) HTGZ[x][y] = std::max(HTGZ[x][y], HTGZ[xx][yy]);
             else
                 dfs1(a, xx, yy, t);
         }
+    if (!HT[x][y] && (a.fieldContent[x][y] | smallFruit)) HTGZ[x][y]++;
     return 0;
 }
 
-int SiHuTong(Pacman::GameField &a) {
+int InitSiHuTong(Pacman::GameField &a) {
     memset(HT, 0, sizeof(HT));
+    memset(HTGZ, 0, sizeof(HTGZ));
     memset(HUT, 0, sizeof(HUT));
     memset(vis, 0, sizeof(vis));
     int x, y, i, j;
@@ -963,8 +965,8 @@ int SiHuTong(Pacman::GameField &a) {
         }
     dfs(a, x, y, -1, -1);    
     memset(vis, 0, sizeof(vis));
-    dfs1(a, x, y, 0);
-/*  
+    HTGZ[x][y] = dfs1(a, x, y, 0);
+/* 
     for (int i = 0; i < a.height; ++i) {
         for (int j = 0; j < a.width; ++j)
             printf("%d ", HUT[i][j]);
@@ -986,9 +988,9 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     for (; Head <= Tail; ++Head) {
         x = ddx[Head]; y = ddy[Head];    
         for (Pacman::Direction i = Pacman::up; i <= 3; ++i)
-            if (a.MoveValid(y, x, i)) {
-                int xx = (x + dx[i] + a.width) % a.width;
-                int yy = (y + dy[i] + a.height) % a.height;
+            if (a.MoveValid(x, y, i)) {
+                int xx = (x + dy[i] + a.height) % a.height;
+                int yy = (y + dx[i] + a.width) % a.width;
                 if (t[xx][yy] == 0) {
                     ++Tail;
                     ddx[Tail] = xx; ddy[Tail] = yy;
@@ -997,31 +999,31 @@ double EatEX(Pacman::GameField &a, int x, int y) {
             }
     }
 
-    /* DEBUG 
+/*
     printf("\n");
     for (x = 0; x < a.height; ++x) {
         for (y = 0; y < a.width; ++y)
-            printf("%.0lf ", f[y][x]);
+            printf("%.0lf ", f[x][y]);
         printf("\n");
-    } */
-
+    } 
+*/
 
     //分别将大果子，小果子的，果子生成器的期望算出
-    for (x = 0; x < a.width; ++x)
-        for (y = 0; y < a.height; ++y) {
+    for (x = 0; x < a.height; ++x)
+        for (y = 0; y < a.width; ++y) {
             if (t[x][y] == 1) {
-                if (a.fieldContent[y][x] & smallFruit) {
+                if (a.fieldContent[x][y] & smallFruit) {
                     ans += EXPoint(f[x][y], 1);
                 }
-                if (a.fieldContent[y][x] & largeFruit) {
+                if (a.fieldContent[x][y] & largeFruit) {
                     ans += EXPoint(f[x][y], 1.33);
                 }
             }
-            if (a.fieldStatic[y][x] & generator) {
+            if (a.fieldStatic[x][y] & generator) {
                 for (int i = -1; i <= 1; ++i)
                     for (int j = -1; j <= 1; ++j)
-                        if (t[(x+i+a.width) % a.width][(y+j+a.height) % a.height])
-                            ans += EXPoint(f[(x+i+a.width) % a.width][(y+j+a.height) % a.height] + a.generatorTurnLeft, 2);
+                        if (t[(x+i+a.height) % a.height][(y+j+a.width) % a.width])
+                            ans += EXPoint(f[(x+i+a.height) % a.height][(y+j+a.width) % a.width] + a.generatorTurnLeft, 2);
             }
         }
 
@@ -1030,7 +1032,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
     for (int i = 0; i < 4; ++i) {
         p = &(a.players[i]);
         if (!p->dead && i != MMId) {
-            dis[i] = f[p->col][p->row];
+            if (disf) dis[i] = f[p->row][p->col];
             double HIS = p->strength;
             HIS = MySS - HIS;
             if (HIS >= 0) 
@@ -1038,9 +1040,10 @@ double EatEX(Pacman::GameField &a, int x, int y) {
             else {
                 HIS /= 3.0;
             }
-            ans += EXPoint(f[p->col][p->row], HIS);
+            ans += EXPoint(f[p->row][p->col], HIS);
         }
     }
+    disf = 0;
     return ans;
 }
 
@@ -1050,90 +1053,92 @@ inline void Fresh(Pacman::GameField &a) {
     return;
 }
 
-int main() {
-    Pacman::GameField gameField;
-    string data, globalData; // 这是回合之间可以传递的信息
- 
-                             // 如果在本地调试，有input.txt则会读取文件内容作为输入
-                             // 如果在平台上，则不会去检查有无input.txt
-    int myID = gameField.ReadInput("input.txt", data, globalData); // 输入，并获得自己ID
-    srand(Pacman::seed + myID);
+bool HitSome(Pacman::GameField &a, int me, int he, Direction c, Direction d) {
+    Fresh(a);
+    a.actions[he] = d;
+    a.NextTurn();
+    int HisSt = a.players[he].strength;
+    int MySt = a.players[me].strength;
+    a.PopState();
+    Fresh(a);
+    a.actions[me] = c;
+    a.actions[he] = d;
+    a.NextTurn();
+    int NHisSt = a.players[he].strength;
+    int NMySt = a.players[me].strength;
+    a.PopState();
+    return ((NMySt > MySt) && (NHisSt < HisSt));
+}
 
-    /* 以下为GP的代码 
-    首先算出各个方向的期望
-	*/
-    gameField.DebugPrint();
+inline void Zhuang(GameField &gameField, int myID) {
+    //防止下一步撞到别人的金光上，权重目前较小
+    for (i1 = stay; i1 <= 3; ++i1) 
+        if (gameField.ActionValid(myID, i1)) {
+            Fresh(gameField);
+            gameField.actions[myID] = i1;
+            for (int i = 1; i <= 3; ++i) 
+                if (!gameField.players[a[i]].dead) {
+                    int EH = 0, sum = 0;
+                    bool Die = 0;
+                    gameField.actions[a[i]] = stay;
+                    gameField.NextTurn();
+                    MySS = gameField.players[myID].strength;
+                    gameField.PopState();
+                    for (i2 = (Direction)4; i2 <= 7; ++i2)
+                        if (gameField.ActionValid(a[i], i2)) {
+                            ++sum;
+                            gameField.actions[myID] = i1;
+                            gameField.actions[a[i]] = i2;
+                            gameField.NextTurn();
+                            MyS = gameField.players[myID].strength;
+                            if (MyS < MySS) EH += 1;
+                            if (gameField.players[myID].dead) Die = 1;
+                            gameField.PopState();
+                        }
+                    double k = gameField.SKILL_COST * 1.5;
+                    k = k * EH / sum;
+                    int h = gameField.players[a[i]].strength;
+                    if (gameField.players[a[i]].powerUpLeft > 0) h -= 10;
+                    if (h <= gameField.SKILL_COST) k /= 15;
+                    else k /= 6;
+                    if (EH) ActEX[i1 + 1] -= EXPoint(0, k);
+                    if (Die) ActEX[i1 + 1] -= EXPoint(0, gameField.players[myID].strength / 2);
+                }
+        }
+    return;
+}
 
-    double ActEX[9];
-    bool CanMove[9];
-    Pacman::Direction ans;
+inline void Init(GameField &gameField, int myID) {
     MyS = gameField.players[myID].strength;
     MySUP = gameField.players[myID].powerUpLeft;
     MMId = myID;
     memset(CanMove, 0, sizeof(CanMove));
-    int a[4], cnt = 0;
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
         if (i != myID)
             a[++cnt] = i;
     for (int i = 0; i <= 8; ++i)
         ActEX[i] = Helpers::RandBetween(1, i+10) / 1e9;
 
-
-    Pacman::Direction i1, i2, i3, i4;
     for (i1 = stay; i1 <= 7; ++i1)
         if (!gameField.ActionValid(myID, i1))
-            CanMove[i1+1] = 1;
+            CanMove[i1+1] = 1;    
 
     MyS = gameField.players[myID].strength;
     MySUP = gameField.players[myID].powerUpLeft;
     if (MySUP > 0) MyS -= 10;
-    for (i1 = (Direction)4; i1 <= 7; ++i1)
-        if (MyS + 1 <= gameField.SKILL_COST)
-            CanMove[i1+1] = 1;
+    return;
+}
 
-    for (Pacman::Direction i = stay; i <= 3; ++i) {
-        if (!gameField.ActionValid(myID, i)) {
-            CanMove[i+1] = 1;
-            continue;
-        }
-        cnt = 0;
-        Fresh(gameField);
-        gameField.actions[myID] = i;
-        for (i1 = stay; i1 <= 3; ++i1)
-            for (i2 = stay; i2 <= 3; ++i2)
-                for (i3 = stay; i3 <= 3; ++i3)
-                    if (gameField.ActionValid(a[1], i1) && gameField.ActionValid(a[2], i2) && gameField.ActionValid(a[3], i3)) {
-                        ++cnt;
-                        gameField.actions[a[1]] = i1;gameField.actions[a[2]] = i2;gameField.actions[a[3]] = i3;
-                        bool Over = gameField.NextTurn();
-                        MySS = gameField.players[myID].strength;
-                        if (gameField.players[myID].dead)
-                            CanMove[i+1] = 1;
-                        ActEX[i+1] += EatEX(gameField, gameField.players[myID].col, gameField.players[myID].row);
-                        gameField.PopState();
-                    }
-        if (cnt != 0)  ActEX[i+1] /= cnt;
-        Fresh(gameField);gameField.actions[myID] = i;
-        gameField.NextTurn();
-        MySS = gameField.players[myID].strength;
-        if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
-        ActEX[i+1] += EXPoint(0, MySS - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 9.0);
-        gameField.PopState();
-    }
-
-
-    //枚举4种金光，如果必定能射到，增加收益作为Point加入期望
+inline void JGEX(GameField &gameField, int myID) {   
+     //枚举4种金光，如果必定能射到，增加收益作为Point加入期望
     MyS = gameField.players[myID].strength;
     if (gameField.players[myID].powerUpLeft != 0) MyS -= 10;
     for (i1 = (Direction)4; i1 <= 7; ++i1) 
         if (gameField.ActionValid(myID, i1)) {
             int CanHit = 0;
             int OH = 0,  S = 0, CC = 0;
-            double k = 0;
             for (int i = 1; i <= 3; ++i) {
                 int WUWU = 1, C = 0;
-                S = 0;CC = 0;
                 int HisS = gameField.players[a[i]].strength;
                 if (gameField.players[a[i]].powerUpLeft != 0) HisS -= 10;
                 for (i2 = stay; i2 <= 3; ++i2)
@@ -1160,49 +1165,57 @@ int main() {
                         gameField.actions[a[i]] = stay;
                     }
                 if (WUWU && C) OH = 1;
-                if (S == 0) continue;
-                if ((1.0 * CC) / S > k) k = (1.0 * CC) / S;
             }
             if (OH) {
                 if (MySS > 0) ActEX[i1+1] += EXPoint(0, gameField.SKILL_COST / 2);
                 CanMove[i1+1] = 0;
             } else {
-                k *= gameField.SKILL_COST / 2;
-                ActEX[i1+1] -= (1599999 - EXPoint(0, k));
+                double k = gameField.SKILL_COST / 2;
+                k = k * CC / S;
+                ActEX[i1+1] -= (1999999 - EXPoint(0, k));
             }
         }
 
-    //防止下一步撞到别人的金光上，权重目前较小
-    for (i1 = stay; i1 <= 3; ++i1) 
-        if (gameField.ActionValid(myID, i1)) {
-            gameField.actions[myID] = i1;
-            for (int i = 1; i <= 3; ++i) 
-                if (!gameField.players[a[i]].dead) {
-                    int EH = 0, sum = 0;
-                    bool Die = 0;
-                    gameField.actions[a[i]] = stay;
-                    gameField.NextTurn();
-                    MySS = gameField.players[myID].strength;
-                    gameField.PopState();
-                    for (i2 = (Direction)4; i2 <= 7; ++i2)
-                        if (gameField.ActionValid(a[i], i2)) {
-                            ++sum;
-                            gameField.actions[myID] = i1;
-                            gameField.actions[a[i]] = i2;
-                            gameField.NextTurn();
-                            MyS = gameField.players[myID].strength;
-                            if (MyS < MySS) EH += 1;
-                            if (gameField.players[myID].dead) Die = 1;
-                            gameField.PopState();
-                        }
-                    double k = gameField.SKILL_COST * 1.5;
-                    k = k * EH / sum;
-                    if (gameField.turnID <= 6) k /= 2;
-                    if (EH) ActEX[i1 + 1] -= EXPoint(0, k);
-                    if (Die) ActEX[i1 + 1] -= EXPoint(0, gameField.players[myID].strength);
-                }
-        }
+    return;
+}
 
+inline void MVEX(GameField &gameField, int myID) {
+    EatEX(gameField, gameField.players[myID].row, gameField.players[myID].col);  
+    for (Pacman::Direction i = stay; i <= 3; ++i) {
+        if (!gameField.ActionValid(myID, i)) {
+            CanMove[i+1] = 1;
+            continue;
+        }
+        cnt = 0;
+        Fresh(gameField);
+        gameField.actions[myID] = i;
+        for (i1 = stay; i1 <= 3; ++i1)
+            for (i2 = stay; i2 <= 3; ++i2)
+                for (i3 = stay; i3 <= 3; ++i3)
+                    if (gameField.ActionValid(a[1], i1) && gameField.ActionValid(a[2], i2) && gameField.ActionValid(a[3], i3)) {
+                        ++cnt;
+                        gameField.actions[a[1]] = i1;gameField.actions[a[2]] = i2;gameField.actions[a[3]] = i3;
+                        bool Over = gameField.NextTurn();
+                        MySS = gameField.players[myID].strength;
+                        if (gameField.players[myID].dead)
+                            CanMove[i+1] = 1;
+                        ActEX[i+1] += EatEX(gameField, gameField.players[myID].row, gameField.players[myID].col);
+                        gameField.PopState();
+                    }
+        if (cnt != 0)  ActEX[i+1] /= cnt;
+        Fresh(gameField);gameField.actions[myID] = i;
+        gameField.NextTurn();
+        MySS = gameField.players[myID].strength;
+        if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
+        ActEX[i+1] += EXPoint(0, MySS - MyS);
+        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 9.0);
+        gameField.PopState();
+    }
+    return;
+}
+
+inline void LBNSHTEX(GameField &gameField, int myID) {
+    memset(mvsht, 0, sizeof(0)); 
     //防止走进死胡同，死胡同的定义式，在走完这一步后，别人存在一种走法，无论你怎么走都能射死你。
     for (i1 = stay; i1 <= 3; ++i1)
         if (gameField.ActionValid(myID, i1) && gameField.turnID < 99) {
@@ -1231,44 +1244,56 @@ int main() {
                                         gameField.PopState();
                                         if (MySS >= MyS) BiSi = 0;
                                     }
-                                if (BiSi) ActEX[i1+1] -= EXPoint(0, 2);
+                                if (BiSi) {ActEX[i1+1] -= EXPoint(0, 2); mvsht[i1+1] = 1;}
                             }
                         gameField.PopState();
                     }
         }
+    return;
+}
 
-    SiHuTong(gameField);
-    int weixian = -1;
+inline void SHTEX(GameField &gameField, int myID) {
+    weixian = -1;
     for (int i = 0; i <= 3; ++i)
         if (gameField.players[i].strength > gameField.players[myID].strength) {
-            if (weixian = -1)
+            if (weixian == -1)
                 weixian = i;
             else
                 if (dis[i] < dis[weixian]) weixian = i;
         }
-
+    if (weixian == -1) return;
     int now = HUT[gameField.players[myID].row][gameField.players[myID].col];
     for (i1 = up; i1 <= 3; ++i1)
-        if (gameField.ActionValid(myID, i1) && (weixian != -1)) {
+        if (gameField.ActionValid(myID, i1)) {
             Fresh(gameField);
             gameField.actions[myID] = i1;
             gameField.NextTurn();
             int noww = HUT[gameField.players[myID].row][gameField.players[myID].col];
+            noww -= HTGZ[gameField.players[myID].row][gameField.players[myID].col];
             gameField.PopState();
             if (dis[weixian] >= 2 * noww) continue;
             ActEX[i1 + 1] -= EXPoint(0, 0.9 * (noww - now));
-
+            int nowweixian = HUT[gameField.players[weixian].row][gameField.players[weixian].col];
             if (weixian != -1) {
-                if (dis[weixian] <= noww) {
+                if (dis[weixian] + nowweixian == now) {
                     ActEX[stay+1] += EXPoint(dis[weixian] / 2, 10);
                 } else {
                     ActEX[i1 + 1] -= EXPoint(dis[weixian] / 2, 1);
                 }
             }
         }
+    return;
+}
 
+inline void GiveYouAAnwser(GameField &gameField, int myID) {
     //选取期望最大的行为
     ans = stay;
+
+    bool t2 = 1;
+    for (i1 = stay; i1 <= 3; ++i1)
+        if (CanMove[i1 + 1] == 0 && mvsht[i1 + 1] == 0)
+            t2 = 0;
+
     for (Pacman::Direction i = stay; i <= 7; ++i)
         if (!CanMove[i+1])
             ans = i;
@@ -1279,6 +1304,34 @@ int main() {
         if (!CanMove[i+1])
             if (ActEX[ans+1] < ActEX[i+1])
                 ans = i;
+
+    if (t2 && dis[weixian] == 1) ans = stay;
+    return;
+}
+
+int main() {
+    Pacman::GameField gameField;
+    string data, globalData; // 这是回合之间可以传递的信息
+ 
+                             // 如果在本地调试，有input.txt则会读取文件内容作为输入
+                             // 如果在平台上，则不会去检查有无input.txt
+    int myID = gameField.ReadInput("input.txt", data, globalData); // 输入，并获得自己ID
+    srand(Pacman::seed + myID);
+
+    /* 以下为GP的代码 
+    首先算出各个方向的期望
+    */
+    gameField.DebugPrint();
+
+    Init(gameField, myID);
+    MVEX(gameField, myID);
+    JGEX(gameField, myID);
+    Zhuang(gameField, myID);
+    LBNSHTEX(gameField, myID);
+    InitSiHuTong(gameField);
+    SHTEX(gameField, myID);
+    GiveYouAAnwser(gameField, myID);
+
 
     string Text[] = {
         "苟利国家生死以",
@@ -1293,3 +1346,4 @@ int main() {
     gameField.WriteOutput(ans, Text[JiaoXiao], data, globalData);
     return 0;
 }
+
