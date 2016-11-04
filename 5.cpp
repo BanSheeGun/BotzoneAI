@@ -936,13 +936,13 @@ int dfs1(Pacman::GameField &a, int x, int y, int t) {
             int xx = (x + dy[i] + a.height) % a.height;
             bool t1 = 1;
             if (vis[xx][yy]) continue;
-            if (!HT[xx][yy])
+            if (!HT[xx][yy]) {
                 dfs1(a, xx, yy, t + 1);
                 if (!HT[x][y]) HTGZ[x][y] = std::max(HTGZ[x][y], HTGZ[xx][yy]);
-            else
+            } else
                 dfs1(a, xx, yy, t);
         }
-    if (!HT[x][y] && (a.fieldContent[x][y] | smallFruit)) HTGZ[x][y]++;
+    if (!HT[x][y] && (a.fieldContent[x][y] & smallFruit)) HTGZ[x][y]++;
     return 0;
 }
 
@@ -1023,7 +1023,7 @@ double EatEX(Pacman::GameField &a, int x, int y) {
                 for (int i = -1; i <= 1; ++i)
                     for (int j = -1; j <= 1; ++j)
                         if (t[(x+i+a.height) % a.height][(y+j+a.width) % a.width])
-                            ans += EXPoint(f[(x+i+a.height) % a.height][(y+j+a.width) % a.width] + a.generatorTurnLeft, 2);
+                            ans += EXPoint(f[(x+i+a.height) % a.height][(y+j+a.width) % a.width] + a.generatorTurnLeft-1, 1);
             }
         }
 
@@ -1035,10 +1035,11 @@ double EatEX(Pacman::GameField &a, int x, int y) {
             if (disf) dis[i] = f[p->row][p->col];
             double HIS = p->strength;
             HIS = MySS - HIS;
-            if (HIS >= 0) 
+            if (HIS >= 0) {
                 HIS /= 5.0;
-            else {
-                HIS /= 3.0;
+                if (HT[p->row][p->col]) HIS = 0.01;
+            } else {
+                HIS = -1;
             }
             ans += EXPoint(f[p->row][p->col], HIS);
         }
@@ -1101,7 +1102,9 @@ inline void Zhuang(GameField &gameField, int myID) {
                     if (gameField.players[a[i]].powerUpLeft > 0) h -= 10;
                     if (h <= gameField.SKILL_COST) k /= 15;
                     else k /= 6;
+                    if (h < gameField.players[myID].strength) k /= 3;
                     if (EH) ActEX[i1 + 1] -= EXPoint(0, k);
+                    if (h > gameField.SKILL_COST)
                     if (Die) ActEX[i1 + 1] -= EXPoint(0, gameField.players[myID].strength / 2);
                 }
         }
@@ -1180,7 +1183,9 @@ inline void JGEX(GameField &gameField, int myID) {
 }
 
 inline void MVEX(GameField &gameField, int myID) {
-    EatEX(gameField, gameField.players[myID].row, gameField.players[myID].col);  
+    EatEX(gameField, gameField.players[myID].row, gameField.players[myID].col);
+    MyS = gameField.players[myID].strength;
+    if (gameField.players[myID].powerUpLeft != 0) MyS -= 10;
     for (Pacman::Direction i = stay; i <= 3; ++i) {
         if (!gameField.ActionValid(myID, i)) {
             CanMove[i+1] = 1;
@@ -1205,11 +1210,16 @@ inline void MVEX(GameField &gameField, int myID) {
         if (cnt != 0)  ActEX[i+1] /= cnt;
         Fresh(gameField);gameField.actions[myID] = i;
         gameField.NextTurn();
-        MySS = gameField.players[myID].strength;
-        if (gameField.players[myID].powerUpLeft != 0) MySS -= 10;
-        ActEX[i+1] += EXPoint(0, MySS - MyS);
-        ActEX[i+1] += EXPoint(0, (gameField.players[myID].powerUpLeft - MySUP) / 9.0);
+        int xxx = gameField.players[myID].row;
+        int yyy = gameField.players[myID].col;
         gameField.PopState();
+        if (gameField.fieldContent[xxx][yyy] & smallFruit) ActEX[i+1] += EXPoint(0, 1);
+        if (gameField.fieldContent[xxx][yyy] & largeFruit) ActEX[i+1] += EXPoint(0, 1.333);
+        for (int ii = -1; ii <= 1; ++ii)
+            for (int jj = -1; jj <= 1; ++jj)
+                if (gameField.fieldStatic[(xxx+ii+gameField.height) % gameField.height][(yyy+jj+gameField.width) % gameField.width] & generator)
+                    ActEX[i+1] += EXPoint(gameField.generatorTurnLeft-1, 1);
+          
     }
     return;
 }
@@ -1244,7 +1254,16 @@ inline void LBNSHTEX(GameField &gameField, int myID) {
                                         gameField.PopState();
                                         if (MySS >= MyS) BiSi = 0;
                                     }
-                                if (BiSi) {ActEX[i1+1] -= EXPoint(0, 2); mvsht[i1+1] = 1;}
+                                if (BiSi) {
+                                    if (gameField.players[a[i]].strength > gameField.players[myID].strength)
+                                        ActEX[i1+1] -= EXPoint(0, 2);
+                                    else {
+                                        ActEX[i1+1] -= EXPoint(1, 2);
+                                        for (Direction pp = (Direction)4; pp <= 7; ++pp)
+                                            ActEX[pp+1] += EXPoint(1, 3);
+                                    }
+                                    mvsht[i1+1] = 1;
+                                }
                             }
                         gameField.PopState();
                     }
@@ -1263,22 +1282,28 @@ inline void SHTEX(GameField &gameField, int myID) {
         }
     if (weixian == -1) return;
     int now = HUT[gameField.players[myID].row][gameField.players[myID].col];
-    for (i1 = up; i1 <= 3; ++i1)
+    for (i1 = stay; i1 <= 3; ++i1)
         if (gameField.ActionValid(myID, i1)) {
             Fresh(gameField);
             gameField.actions[myID] = i1;
             gameField.NextTurn();
             int noww = HUT[gameField.players[myID].row][gameField.players[myID].col];
-            noww -= HTGZ[gameField.players[myID].row][gameField.players[myID].col];
+            int otherS = HTGZ[gameField.players[myID].row][gameField.players[myID].col];
+            int DeS = gameField.players[weixian].strength - gameField.players[myID].strength;
+            DeS -= otherS;
             gameField.PopState();
-            if (dis[weixian] >= 2 * noww) continue;
+            if (dis[weixian] > 3 * noww + 3) continue;
             ActEX[i1 + 1] -= EXPoint(0, 0.9 * (noww - now));
             int nowweixian = HUT[gameField.players[weixian].row][gameField.players[weixian].col];
             if (weixian != -1) {
                 if (dis[weixian] + nowweixian == now) {
-                    ActEX[stay+1] += EXPoint(dis[weixian] / 2, 10);
+                    ActEX[stay+1] += EXPoint(dis[weixian] / 2, DeS);
                 } else {
-                    ActEX[i1 + 1] -= EXPoint(dis[weixian] / 2, 1);
+                    if (noww > now)
+                        ActEX[i1 + 1] -= EXPoint(dis[weixian] / 2, DeS);
+                    else
+                        if (noww != now)
+                            ActEX[i1 + 1] += EXPoint(dis[weixian] / 2, DeS);
                 }
             }
         }
@@ -1323,12 +1348,12 @@ int main() {
     */
     gameField.DebugPrint();
 
+    InitSiHuTong(gameField);
     Init(gameField, myID);
     MVEX(gameField, myID);
     JGEX(gameField, myID);
     Zhuang(gameField, myID);
     LBNSHTEX(gameField, myID);
-    InitSiHuTong(gameField);
     SHTEX(gameField, myID);
     GiveYouAAnwser(gameField, myID);
 
