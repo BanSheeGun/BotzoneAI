@@ -1181,7 +1181,7 @@ inline void JGEX(GameField &gameField, int myID) {
                 double k = gameField.SKILL_COST / 2;
                 k = k * CC / S;
                 k /= 2.0;
-                ActEX[i1+1] -= (1999999 - EXPoint(1, k));
+                ActEX[i1+1] -= (1299999 - EXPoint(1, k));
             }
         }
 
